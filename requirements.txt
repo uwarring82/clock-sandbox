@@ -1,0 +1,14 @@
+# Core scientific libraries
+numpy
+scipy
+matplotlib
+pandas
+
+# Noise generation and spectral analysis
+colorednoise
+allspectra
+
+# Optional: for live data access and notebooks
+requests
+astropy
+jupyter
