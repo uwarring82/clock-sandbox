@@ -79,3 +79,19 @@ def plot_comparison(timeseries_dict: Dict[str, np.ndarray], labels=None) -> None
         plt.ylabel(f"{labels[1]} - {labels[0]} [s]")
         plt.title("Time difference")
     plt.show()
+
+
+def consensus_weighted_average(timeseries_dict, keys, method="inv_var"):
+    """Compute a simple consensus series via inverse-variance weighting."""
+    t = timeseries_dict["time"]
+    data = [timeseries_dict[k] for k in keys]
+    arr = np.vstack(data)
+    var = np.var(arr - arr.mean(axis=1, keepdims=True), axis=1, ddof=1)
+    var = np.where(var <= 0.0, 1e-24, var)
+    if method == "inv_var":
+        w = 1.0 / var
+        w = w / np.sum(w)
+    else:
+        raise ValueError(f"Unknown method: {method}")
+    consensus = np.average(arr, axis=0, weights=w)
+    return {"time": t, "consensus": consensus, "weights": w.tolist()}
