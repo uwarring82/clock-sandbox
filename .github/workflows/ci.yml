@@ -45,7 +45,9 @@ jobs:
           MPLBACKEND: Agg
         run: |
           source .venv/bin/activate
-          jupyter nbconvert --to notebook \
+          export PYTHONPATH="$PWD"
+          python -m nbconvert --to notebook \
             --execute notebooks/PhaseI_smoke_test.ipynb \
-            --output notebooks/PhaseI_smoke_test.out.ipynb \
+            --output PhaseI_smoke_test.out.ipynb \
+            --output-dir notebooks \
             --ExecutePreprocessor.timeout=600
