@@ -156,14 +156,13 @@ def adev_overlapping_allantools(y, dt, taus=None):
     if taus is None:
         # Let allantools choose logarithmic tau sequence (overlapping)
         # Compute with oadev (overlapping Allan deviation) and data_type='freq'
-        taus_s, adev, adev_err, _ = at.oadev(y, rate=rate, data_type='freq', overlap=True)
+        taus_s, adev, adev_err, _ = at.oadev(y, rate=rate, data_type='freq')
     else:
-        taus = np.asarray(taus, dtype=float)
-        # Convert τ [s] -> m (integers) by m = round(τ/dt), then back to τ for output
-        m = np.maximum(1, np.round(taus / float(dt)).astype(int))
-        taus_req = m * float(dt)
-        # Use oadev with specified taus (m values)
-        taus_s, adev, adev_err, _ = at.oadev(y, rate=rate, data_type='freq', overlap=True, taus=taus_req)
+        taus_req = np.asarray(taus, dtype=float)
+        if np.any(taus_req <= 0):
+            raise ValueError("taus must be positive")
+        # allantools interprets 'taus' directly in seconds when rate is provided
+        taus_s, adev, adev_err, _ = at.oadev(y, rate=rate, data_type='freq', taus=taus_req)
     return np.asarray(taus_s, float), np.asarray(adev, float), np.asarray(adev_err, float)
 
 
