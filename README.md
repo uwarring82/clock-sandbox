@@ -105,3 +105,10 @@ jupyter lab notebooks/PhaseI_smoke_test.ipynb
 Notes
 - All times are in seconds; epoch (t_0 = 0).
 - NoisyOscillatorClock is deterministic with a fixed seed (re-running yields identical outputs).
+
+## Launch in Binder
+
+[![Binder - JupyterLab](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/uwarring82/clock-sandbox/main?urlpath=lab)
+
+- [Launch smoke test in Binder](https://mybinder.org/v2/gh/uwarring82/clock-sandbox/main?labpath=notebooks%2FPhaseI_smoke_test.ipynb)
+
