@@ -122,6 +122,7 @@ def consensus_weighted_average(timeseries_dict, keys, method="inv_var_frac", dt=
     method : str
         'inv_var_frac'  -> inverse variance of fractional frequency y(t) [DEFAULT]
         'inv_oadev_tau' -> inverse square of overlapping Allan deviation σ_y(τ) at target τ.
+        Legacy alias: 'inv_var' (mapped internally to 'inv_var_frac' for backward compatibility).
     dt : float | None
         Sampling interval [s]; required if it cannot be inferred from the time grid.
     tau : float | None
@@ -163,6 +164,12 @@ def consensus_weighted_average(timeseries_dict, keys, method="inv_var_frac", dt=
         vec = np.where(vec <= 0.0, floor, vec)
         return 1.0 / vec
 
+    method_aliases = {
+        "inv_var": "inv_var_frac",
+    }
+    original_method = method
+    method = method_aliases.get(method, method)
+
     detail = {}
 
     if method == "inv_var_frac":
@@ -178,7 +185,6 @@ def consensus_weighted_average(timeseries_dict, keys, method="inv_var_frac", dt=
     elif method == "inv_oadev_tau":
         if tau is None:
             raise ValueError("tau (in seconds) is required for method='inv_oadev_tau'")
-        from .analysis import adev_overlapping_allantools
         sigmas, errs = [], []
         for row in arr:
             y = np.diff(row) / dt_eff - 1.0
@@ -192,6 +198,9 @@ def consensus_weighted_average(timeseries_dict, keys, method="inv_var_frac", dt=
         raise ValueError(f"Unknown method: {method}")
 
     consensus = np.average(arr, axis=0, weights=w)
+    if original_method != method:
+        detail["method_alias"] = {"requested": original_method, "canonical": method}
+
     return {
         "time": t,
         "consensus": consensus,
