@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test-and-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run pytest
+        env:
+          PYTHONPATH: .
+          MPLBACKEND: Agg
+        run: |
+          source .venv/bin/activate
+          pytest
+
+      - name: Run example script
+        env:
+          PYTHONPATH: .
+          MPLBACKEND: Agg
+        run: |
+          source .venv/bin/activate
+          python examples/basic_comparison.py
+
+      - name: Execute smoke-test notebook
+        env:
+          PYTHONPATH: .
+          MPLBACKEND: Agg
+        run: |
+          source .venv/bin/activate
+          jupyter nbconvert --to notebook \
+            --execute notebooks/PhaseI_smoke_test.ipynb \
+            --output notebooks/PhaseI_smoke_test.out.ipynb \
+            --ExecutePreprocessor.timeout=600
