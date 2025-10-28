@@ -55,6 +55,34 @@ def compare_clocks(time_s, t_a_s, t_b_s) -> Dict[str, float]:
     }
 
 
+def fractional_frequency_from_time(time_s, elapsed_s, dt=None):
+    """Compute fractional frequency y_k from elapsed time samples."""
+    import numpy as np
+
+    t = np.asarray(time_s, dtype=float)
+    x = np.asarray(elapsed_s, dtype=float)
+    if t.shape != x.shape:
+        raise ValueError("time_s and elapsed_s must have the same shape")
+    if t.size < 2:
+        raise ValueError("need at least two samples to compute fractional frequency")
+
+    dt_array = np.diff(t)
+    if np.any(dt_array <= 0):
+        raise ValueError("time grid must be strictly increasing")
+
+    if dt is None:
+        denom = dt_array
+    else:
+        denom = float(dt)
+        if denom <= 0:
+            raise ValueError("dt must be positive")
+        if not np.allclose(dt_array, denom, rtol=1e-6, atol=0.0):
+            raise ValueError("time grid spacing does not match provided dt")
+
+    y = np.diff(x) / denom - 1.0
+    return y
+
+
 def plot_comparison(timeseries_dict: Dict[str, np.ndarray], labels=None) -> None:
     """Matplotlib plot: (1) elapsed time, (2) first pair difference."""
     import matplotlib.pyplot as plt
@@ -95,3 +123,63 @@ def consensus_weighted_average(timeseries_dict, keys, method="inv_var"):
         raise ValueError(f"Unknown method: {method}")
     consensus = np.average(arr, axis=0, weights=w)
     return {"time": t, "consensus": consensus, "weights": w.tolist()}
+
+
+# ===== Overlapping Allan deviation via allantools (Phase I+) =====
+def adev_overlapping_allantools(y, dt, taus=None):
+    """Compute overlapping Allan deviation using 'allantools' with uncertainties.
+
+    Parameters
+    ----------
+    y : array-like
+        Fractional frequency time series sampled uniformly every dt seconds.
+    dt : float
+        Sampling interval [s].
+    taus : array-like or None
+        Optional list/array of tau values [s]. If None, allantools will choose defaults.
+
+    Returns
+    -------
+    taus_s : np.ndarray
+        Tau values [s].
+    adev : np.ndarray
+        Overlapping Allan deviation σ_y(τ).
+    adev_err : np.ndarray
+        1-σ uncertainty estimates corresponding to σ_y(τ).
+    """
+    import numpy as np
+    import allantools as at
+
+    y = np.asarray(y, dtype=float)
+    rate = 1.0 / float(dt)  # samples per second
+
+    if taus is None:
+        # Let allantools choose logarithmic tau sequence (overlapping)
+        # Compute with oadev (overlapping Allan deviation) and data_type='freq'
+        taus_s, adev, adev_err, _ = at.oadev(y, rate=rate, data_type='freq')
+    else:
+        taus_req = np.asarray(taus, dtype=float)
+        if np.any(taus_req <= 0):
+            raise ValueError("taus must be positive")
+        # allantools interprets 'taus' directly in seconds when rate is provided
+        taus_s, adev, adev_err, _ = at.oadev(y, rate=rate, data_type='freq', taus=taus_req)
+    return np.asarray(taus_s, float), np.asarray(adev, float), np.asarray(adev_err, float)
+
+
+def plot_adev_with_uncertainties(taus_s, adev, adev_err, title="Overlapping Allan deviation (allantools)"):
+    """Log-log plot of ADEV with 1-σ error bars."""
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    plt.figure()
+    yerr = adev_err
+    # Avoid non-positive values on log scale; mask zeros if any
+    mask = (taus_s > 0) & (adev > 0)
+    plt.errorbar(taus_s[mask], adev[mask], yerr=yerr[mask], fmt='o', capsize=3)
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlabel("τ [s]")
+    plt.ylabel("σ_y(τ)")
+    plt.title(title)
+    plt.grid(True, which="both", ls=":")
+    plt.show()
