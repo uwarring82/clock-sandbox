@@ -84,3 +84,24 @@ Contributions are welcome. Please open an issue or pull request if you:
 
 © 2025 Ulrich Warring.  
 Released under the MIT License (software) and CC-BY 4.0 License (documentation).
+
+## Quick Start
+
+```bash
+# 1) Create and activate a virtual environment (recommended)
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+
+# 2) Install dependencies (pinning minimal versions)
+pip install -r requirements.txt
+
+# 3) Run the Phase I example (prints metrics and produces plots)
+PYTHONPATH=. MPLBACKEND=Agg python examples/basic_comparison.py
+
+# 4) Optional: open and run the smoke-test notebook
+jupyter lab notebooks/PhaseI_smoke_test.ipynb
+```
+
+Notes
+- All times are in seconds; epoch (t_0 = 0).
+- NoisyOscillatorClock is deterministic with a fixed seed (re-running yields identical outputs).

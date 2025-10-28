@@ -1,15 +1,11 @@
-# Core scientific libraries
-numpy
-scipy
-matplotlib
-pandas
-
-# Noise generation and spectral analysis
-colorednoise
-allspectra
-
-# Optional: for live data access and notebooks
-requests
 astropy
-jupyter
-nbformat
+colorednoise
+jupyter>=1.0
+matplotlib>=3.8
+nbconvert>=7.16
+nbformat>=5.9
+numpy>=1.26
+pandas>=2.0
+pytest>=8.0
+requests
+scipy>=1.11

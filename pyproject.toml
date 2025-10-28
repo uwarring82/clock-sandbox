@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clocksandbox"
+version = "0.1.0"
+description = "ClockSandbox Phase I: ideal and noisy clocks with simple analysis."
+authors = [{ name = "Ulrich Warring" }]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["clocks", "core"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
