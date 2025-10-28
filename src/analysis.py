@@ -109,20 +109,96 @@ def plot_comparison(timeseries_dict: Dict[str, np.ndarray], labels=None) -> None
     plt.show()
 
 
-def consensus_weighted_average(timeseries_dict, keys, method="inv_var"):
-    """Compute a simple consensus series via inverse-variance weighting."""
-    t = timeseries_dict["time"]
-    data = [timeseries_dict[k] for k in keys]
-    arr = np.vstack(data)
-    var = np.var(arr - arr.mean(axis=1, keepdims=True), axis=1, ddof=1)
-    var = np.where(var <= 0.0, 1e-24, var)
-    if method == "inv_var":
-        w = 1.0 / var
+def consensus_weighted_average(timeseries_dict, keys, method="inv_var_frac", dt=None, tau=None):
+    """
+    Compute a consensus series via inverse-variance weighting.
+
+    Parameters
+    ----------
+    timeseries_dict : dict[str, np.ndarray]
+        Output of run_clocks(...) with keys 'time' and 'clock_i'.
+    keys : list[str]
+        Which 'clock_*' keys to include in the consensus. Do NOT include the ideal ('clock_0').
+    method : str
+        'inv_var_frac'  -> inverse variance of fractional frequency y(t) [DEFAULT]
+        'inv_oadev_tau' -> inverse square of overlapping Allan deviation σ_y(τ) at target τ.
+    dt : float | None
+        Sampling interval [s]; required if it cannot be inferred from the time grid.
+    tau : float | None
+        Averaging time τ [s] used for method='inv_oadev_tau'.
+
+    Returns
+    -------
+    dict with fields:
+        time, consensus, weights, method, detail
+        where detail contains method-specific diagnostics (e.g., var_frac or sigma_y_tau).
+    """
+    import numpy as np
+
+    # --- inputs & guards ---
+    t = np.asarray(timeseries_dict["time"], dtype=float)
+    if any(k == "clock_0" for k in keys):
+        raise ValueError("Do not include 'clock_0' (Ideal) in consensus keys; average only noisy clocks.")
+
+    data = [np.asarray(timeseries_dict[k], dtype=float) for k in keys]
+    arr = np.vstack(data)  # shape: (n_clocks, n_times)
+
+    # --- infer/validate dt ---
+    dt_array = np.diff(t)
+    if np.any(dt_array <= 0):
+        raise ValueError("time grid must be strictly increasing")
+
+    if dt is None:
+        if not np.allclose(dt_array, dt_array[0], rtol=1e-9, atol=0.0):
+            raise ValueError("time grid must be uniform or provide dt explicitly")
+        dt_eff = float(dt_array[0])
+    else:
+        dt_eff = float(dt)
+        if dt_eff <= 0:
+            raise ValueError("dt must be positive")
+
+    # --- helper: safe inverse to avoid divide-by-zero ---
+    def _safe_inv(vec, floor=1e-24):
+        vec = np.asarray(vec, dtype=float)
+        vec = np.where(vec <= 0.0, floor, vec)
+        return 1.0 / vec
+
+    detail = {}
+
+    if method == "inv_var_frac":
+        # Weight by inverse variance of fractional frequency y
+        var_y = []
+        for row in arr:
+            y = np.diff(row) / dt_eff - 1.0
+            var_y.append(np.var(y, ddof=1) if y.size > 1 else 0.0)
+        w = _safe_inv(var_y)
         w = w / np.sum(w)
+        detail = {"var_frac": [float(v) for v in var_y]}
+
+    elif method == "inv_oadev_tau":
+        if tau is None:
+            raise ValueError("tau (in seconds) is required for method='inv_oadev_tau'")
+        from .analysis import adev_overlapping_allantools
+        sigmas, errs = [], []
+        for row in arr:
+            y = np.diff(row) / dt_eff - 1.0
+            taus_s, adev, adev_err = adev_overlapping_allantools(y, dt=dt_eff, taus=[float(tau)])
+            sigmas.append(float(adev[0])); errs.append(float(adev_err[0]))
+        w = _safe_inv(np.square(sigmas))
+        w = w / np.sum(w)
+        detail = {"sigma_y_tau": sigmas, "sigma_y_tau_err": errs, "tau": float(tau)}
+
     else:
         raise ValueError(f"Unknown method: {method}")
+
     consensus = np.average(arr, axis=0, weights=w)
-    return {"time": t, "consensus": consensus, "weights": w.tolist()}
+    return {
+        "time": t,
+        "consensus": consensus,
+        "weights": w.tolist(),
+        "method": method,
+        "detail": detail,
+    }
 
 
 # ===== Overlapping Allan deviation via allantools (Phase I+) =====
