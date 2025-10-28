@@ -8,9 +8,9 @@
 
 ## Comparison (dataclass)
 - Fields: `label_a, label_b, time_s, t_a_s, t_b_s`
-- Method: `.measure()` delegates to `analysis.compare_clocks(...)`
+- `.measure()` delegates to `analysis.compare_clocks(...)`
 
-## analysis.py (pure functions)
+## analysis.py
 - `run_clocks(clocks, duration, dt) -> dict[str, np.ndarray]`
 - `compare_clocks(time_s, t_a_s, t_b_s) -> dict[str, float]`
 - `plot_comparison(timeseries_dict, labels=None) -> None`

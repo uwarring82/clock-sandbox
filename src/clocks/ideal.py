@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Dict, Any
 from ..core import Clock
 
+
 class IdealClock(Clock):
-    """Perfect reference clock with elapsed time t = sum(dt)."""
     def __init__(self) -> None:
         self._elapsed_time: float = 0.0
 

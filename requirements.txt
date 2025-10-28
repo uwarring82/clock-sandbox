@@ -12,3 +12,4 @@ allspectra
 requests
 astropy
 jupyter
+nbformat
