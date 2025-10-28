@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -e
+python - <<'PY'
+# Ensure the Agg backend is available for headless rendering.
+import matplotlib
+matplotlib.use("Agg")
+print("Binder postBuild: matplotlib backend set to Agg.")
+PY
